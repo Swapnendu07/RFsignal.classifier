@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>RF Signal Classifier</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f9;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 40px auto;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+
+      label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 8px;
+        color: #555;
+      }
+
+      textarea {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        padding: 12px;
+        font-family: monospace;
+        font-size: 0.95rem;
+        resize: vertical;
+      }
+
+      #drop_zone {
+        border: 2px dashed #bbb;
+        padding: 25px;
+        margin-top: 20px;
+        border-radius: 10px;
+        text-align: center;
+        background-color: #fafafa;
+        color: #666;
+        transition: background-color 0.2s, border-color 0.2s;
+      }
+
+      #drop_zone.dragging {
+        background-color: #e0f7ff;
+        border-color: #00aaff;
+        color: #0077aa;
+      }
+
+      .buttons {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+        justify-content: center;
+      }
+
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        background-color: #0077cc;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      button:hover {
+        background-color: #005fa3;
+      }
+
+      .result {
+        margin-top: 30px;
+        padding: 20px;
+        background-color: #e6ffee;
+        border-left: 5px solid #2ecc71;
+        border-radius: 8px;
+        color: #2c3e50;
+      }
+    </style>
+
+    <script>
+      function generateRandom() {
+        let arr = [];
+        for (let i = 0; i < 2048; i++) {
+          arr.push((Math.random() * 2 - 1).toFixed(4));
+        }
+        document.getElementById("iq_data").value = arr.join(", ");
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const file = e.dataTransfer.files[0];
+        if (
+          file &&
+          (file.type === "text/plain" || file.name.endsWith(".csv"))
+        ) {
+          const reader = new FileReader();
+          reader.onload = function (event) {
+            document.getElementById("iq_data").value = event.target.result;
+            e.target.classList.remove("dragging");
+          };
+          reader.readAsText(file);
+        } else {
+          alert("Please drop a valid .txt or .csv file.");
+        }
+      }
+
+      function handleDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
+        e.target.classList.add("dragging");
+      }
+
+      function handleDragLeave(e) {
+        e.target.classList.remove("dragging");
+      }
+
+      function validateForm(e) {
+        const values = document
+          .getElementById("iq_data")
+          .value.split(",")
+          .map((v) => v.trim())
+          .filter((v) => v !== "");
+
+        if (values.length !== 2048) {
+          e.preventDefault();
+          alert(`Expected 2048 float values, but got ${values.length}.`);
+        }
+      }
+
+      window.onload = function () {
+        document.querySelector("form").addEventListener("submit", validateForm);
+      };
+    </script>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>RF Signal Classifier</h1>
+
+      <form method="POST" action="/">
+        <label for="iq_data">Paste 2048 float values (comma-separated):</label>
+        <textarea
+          id="iq_data"
+          name="iq_data"
+          rows="10"
+          placeholder="e.g. 0.1, -0.2, 0.3, ..."
+          required
+        ></textarea>
+
+        <div
+          id="drop_zone"
+          ondrop="handleDrop(event)"
+          ondragover="handleDragOver(event)"
+          ondragleave="handleDragLeave(event)"
+        >
+          Drag & Drop a .txt or .csv file here
+        </div>
+
+        <div class="buttons">
+          <button type="submit">Predict</button>
+          <button type="button" onclick="generateRandom()">
+            Generate Random Data
+          </button>
+        </div>
+      </form>
+
+      {% if prediction %}
+      <div class="result">
+        <h2>Prediction Result: {{ prediction }}</h2>
+      </div>
+      {% endif %}
+    </div>
+  </body>
+</html>
